@@ -1,0 +1,11 @@
+# Export all names
+export(ramml, pramml, PRM)
+
+importFrom(pcaPP, qn)
+importFrom(pcaPP, l1median)
+importFrom(robustbase, ltsReg)
+importFrom(robustbase, lmrob.S)
+importFrom(robustbase, lmrob.control)
+
+importFrom("stats", "median", "model.matrix", "model.response",
+             "qchisq", "qnorm", "sd")
