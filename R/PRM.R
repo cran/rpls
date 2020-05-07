@@ -1,4 +1,4 @@
-PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), center.type = "median", scale.type = "qn", usesvd = FALSE,
+PRM <- function(formula, data, a, wfunX=list("Fair",0.95), wfunY=list("Fair",0.95), center.type = "median", scale.type = "qn", usesvd = FALSE,
                 numit = 30, prec = 0.01)
 {
 
@@ -11,13 +11,11 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
   y <- model.response(mf, "numeric")
   y <- as.vector(y)
   X <- model.matrix(mt, mf)
-
   Xattrib <- attributes(X)
   intercept <- which(Xattrib$assign == 0)
   if (length(intercept)) {
     X <- X[, -intercept, drop = FALSE]
   }
-
   Unisimpls <- function(X, y, a) {
     n <- nrow(X)
     px <- ncol(X)
@@ -62,16 +60,15 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
     }
     list(coefficients = B, scores = U, loadings = P)
   }
-
-  scale_matrix<-function(Data){
-
-    if(center.type=="l1m"){
+  scale_matrix <- function(Data){
+    if (center.type == "l1m"){
       Data.center <- l1median(Data)
-    } else {
+    } 
+    else {
       Data.center <- apply(Data,2,center.type)
     }
-    Data.scaled <- (Data - matrix(Data.center,nrow=dim(Data)[1],ncol=dim(Data)[2],byrow=TRUE))
-
+    Data.scaled <- (Data - matrix(Data.center,nrow=dim(Data)[1],
+                                  ncol=dim(Data)[2],byrow=TRUE))
     if(!(scale.type=="no")){
       Data.scale <- apply(Data,2,scale.type)
       if (any(1/Data.scale>1e19) | any(is.nan(Data.scale))){
@@ -117,10 +114,10 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
     return(Data.scaled)
   }
 
-  fairW <- function(z,fairct){
-    fairct<-as.double(fairct)
+  fairW <- function(z,probct){
+    probct<-as.double(probct)
     wy <- z
-    wy <- 1/((1 + abs(z/fairct))^2)
+    wy <- 1/((1 + abs(z/(probct)))^2)
     return(wy)
   }
 
@@ -138,7 +135,6 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
     wx <- z
     r <- z
     wx[which(abs(r) >= probct)] <- 0
-    ###wx[which(abs(r) < probct)] <- 6*(1-(wx[which(abs(r) < probct)]/probct)^2)^2
     wx[which(abs(r) < probct)] <- (1-(wx[which(abs(r) < probct)]/probct)^2)^2
     return(wx)
   }
@@ -193,13 +189,13 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
     z <- wx
     if(is.list(wfunX)){
       if(wfunX[1] == "Fair"){
-        wx <- fairW(z,wfunX[2])
+        wx <- fairW(z,qnorm(as.double(wfunX[2])))
       }
       else if(wfunX[1] == "Huber"){
-        wx <- huberW(z,wfunX[2])
+        wx <- huberW(z,qnorm(as.double(wfunX[2])))
       }
       else if(wfunX[1] == "Tukey"){
-        wx <- tukeyW(z,wfunX[2])
+        wx <- tukeyW(z,qnorm(as.double(wfunX[2])))
       }
       else if(wfunX[1] == "Hampel"){
         probct1 <-  qnorm(as.double(wfunX[2]))
@@ -223,13 +219,13 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
     z <- wy
     if(is.list(wfunY)){
       if(wfunY[1] == "Fair"){
-        wy <- fairW(z,wfunY[2])
+        wy <- fairW(z,qnorm(as.double(wfunY[2])))
       }
       else if(wfunY[1] == "Huber"){
-        wy <- huberW(z,wfunY[2])
+        wy <- huberW(z,qnorm(as.double(wfunY[2])))
       }
       else if(wfunY[1] == "Tukey"){
-        wy <- tukeyW(z,wfunY[2])
+        wy <- tukeyW(z,qnorm(as.double(wfunY[2])))
       }
       else if(wfunY[1] == "Hampel"){
         probct1 <-  qnorm(as.double(wfunY[2]))
@@ -278,13 +274,16 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
       z <- wt
       if(is.list(wfunX)){
         if(wfunX[1] == "Fair"){
-          wt <- fairW(z,wfunX[2])
+          probct1 <-  qchisq(as.double(wfunX[2]),a)
+          wt <- fairW(z,probct1)
         }
         else if(wfunX[1] == "Huber"){
-          wt <- huberW(z,wfunX[2])
+          probct1 <-  qchisq(as.double(wfunX[2]),a)
+          wt <- huberW(z,probct1)
         }
         else if(wfunX[1] == "Tukey"){
-          wt <- tukeyW(z,wfunX[2])
+          probct1 <-  qchisq(as.double(wfunX[2]),a)
+          wt <- tukeyW(z,probct1)
         }
         else if(wfunX[1] == "Hampel"){
           probct1 <-  qchisq(as.double(wfunX[2]),a)
@@ -308,13 +307,13 @@ PRM <- function(formula, data, a, wfunX=list("Fair",4), wfunY=list("Fair",4), ce
       z <- r
       if(is.list(wfunY)){
         if(wfunY[1] == "Fair"){
-          wy <- fairW(z,as.double(wfunY[2]))
+          wy <- fairW(z,qnorm(as.double(wfunY[2])))
         }
         else if(wfunY[1] == "Huber"){
-          wy <- huberW(z,as.double(wfunY[2]))
+          wy <- huberW(z,qnorm(as.double(wfunY[2])))
         }
         else if(wfunY[1] == "Tukey"){
-          wy <- tukeyW(z,as.double(wfunY[2]))
+          wy <- tukeyW(z,qnorm(as.double(wfunY[2])))
         }
         else if(wfunY[1] == "Hampel"){
           probct1 <-  qnorm(as.double(wfunY[2]))
